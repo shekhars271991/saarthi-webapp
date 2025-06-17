@@ -88,12 +88,12 @@ const FAQ = () => {
         <h1 className="text-4xl font-[400] text-center text-gray-900 mb-12">FAQs</h1>
 
         {/* Tab Navigation */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8 border-b border-gray-200">
+        <div className="flex flex-wrap justify-center gap-2 mb-8 ">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+              className={`px-4 py-2 border border-[#BEC9C6] rounded-[8px] font-medium transition-colors ${
                 activeTab === tab
                   ? 'bg-orange-200 text-orange-800 border-b-2 border-orange-500'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
