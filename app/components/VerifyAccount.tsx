@@ -2,13 +2,27 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 
-const VerifyAccount = ({ onVerify }: { onVerify: () => void }) => {
+import { verifyOtp, generateOTP } from '../services/apiService';
+import { toast } from 'react-hot-toast';
+
+const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: string;verifyApi:boolean; onVerified: (otp:string) => void }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(30);
+  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     inputsRef.current[0]?.focus();
+    setTimer(30);
   }, []);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return; // Only allow digits
@@ -26,52 +40,156 @@ const VerifyAccount = ({ onVerify }: { onVerify: () => void }) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.every((digit) => digit !== '')) {
-      onVerify();
+      setLoading(true);
+      try {
+        const otpCode = otp.join('');
+        let user = null;
+        if(verifyApi){
+          user = await verifyOtp(phoneNumber, otpCode);
+        }
+        // toast.success('OTP verified successfully', {
+        //   style: {
+        //     background: '#10B981',
+        //     color: '#FFFFFF',
+        //   },
+        // });
+        onVerified(user?.user_details);
+      } catch (error) {
+        toast.error('OTP verification failed', {
+          style: {
+            background: '#EF4444',
+            color: '#FFFFFF',
+          },
+        });
+      } finally {
+        setLoading(false);
+      }
     } else {
-      alert('Please enter the complete 6-digit code.');
+      toast.error('Please enter the complete 6-digit code.');
+    }
+  };
+
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    try {
+      await generateOTP(phoneNumber);
+      toast.success('OTP resent to your phone');
+      setTimer(30);
+    } catch (err) {
+      toast.error('Failed to resend OTP');
+    } finally {
+      setResendLoading(false);
     }
   };
 
   return (
-   
-        <div className="bg-white p-10 rounded-lg shadow-md w-full max-w-sm space-y-6 px-6 sm:px-10 mx-4 sm:mx-auto">
-          <div className="mb-6 flex items-center space-x-2">
-            <img src="./logo.png" alt="Logo" className="h-8" />
-            <h1 className="text-2xl font-semibold">Verify account</h1>
-          </div>
-          <p className="mb-6 text-gray-600">
-            Enter 6-digit code sent to your phone number via WhatsApp
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex justify-center space-x-3">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  ref={(el) => { inputsRef.current[index] = el; }}
-                  className="w-12 h-14 border border-gray-300 rounded-md text-center text-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
-                />
-              ))}
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-teal-700 text-white py-3 rounded-full hover:bg-teal-800 transition-colors"
-            >
-              Verify OTP
-            </button>
-          </form>
-          <p className="mt-6 text-center text-gray-600">
-            Resend the code in <strong>30S</strong>
-          </p>
+    <div className="bg-white  w-full max-w-sm space-y-6   mx-4 sm:mx-auto">
+      <div className="mb-6 flex items-center space-x-2">
+        <img src="./login-logo.png" alt="Logo" className="h-16" />
+        <h1 className="text-2xl font-semibold">Verify account</h1>
+      </div>
+      <p className="mb-6 text-gray-600">
+        Enter 6-digit code sent to your phone number via WhatsApp
+      </p>
+      <form onSubmit={handleSubmit} className="space-y-6 ml-[-2rem] md:ml-[0rem]">
+        <div className="flex justify-center space-x-3">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              type="text"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              ref={(el) => { inputsRef.current[index] = el; }}
+              className="w-12 h-14 border border-gray-300 rounded-md text-center text-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
+            />
+          ))}
         </div>
-
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full bg-teal-700 text-white py-3 rounded-full hover:bg-teal-800 transition-colors ${
+            loading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {loading ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
+                ></path>
+              </svg>
+              Loading...
+            </span>
+          ) : (
+            'Verify OTP'
+          )}
+        </button>
+      </form>
+      <div className="mt-6 text-center text-gray-600">
+        {timer > 0 ? (
+          <span>
+            Resend the code in <strong>{timer}S</strong>
+          </span>
+        ) : (
+          <button
+            onClick={handleResend}
+            disabled={resendLoading}
+            className={`bg-teal-700 text-white px-4 py-2 rounded-full hover:bg-teal-800 transition-colors font-medium text-sm ${
+              resendLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            {resendLoading ? (
+              <span className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
+                  ></path>
+                </svg>
+                Sending...
+              </span>
+            ) : (
+              'Resend OTP'
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 

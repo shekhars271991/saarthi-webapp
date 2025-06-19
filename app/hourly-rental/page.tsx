@@ -5,10 +5,22 @@ import HourlyRental from '../../app/components/HourlyRental';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 const HourlyRentalPage = () => {
-return( <div className="min-h-screen bg-white">
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [router]);
+
+  return( <div className="min-h-screen bg-white">
       <Header/>
-  <HourlyRental />
+      <HourlyRental />
       <Footer/>
     </div>);
 };

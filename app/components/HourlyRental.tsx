@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane, Clock } from 'lucide-react';
+import { calculateFareHourly } from '../services/apiService';
 
 // Declare Google Maps types
 declare global {
@@ -243,16 +244,67 @@ const HourlyRental: React.FC = () => {
     }
   };
 
-  const handleCheckFare = () => {
-    if (!locationFrom || !locationTo || !schedule || !distance) {
+  const [apiFare, setApiFare] = useState<number | null>(null);
+  const [apiFareLoading, setApiFareLoading] = useState(false);
+  const [apiFareError, setApiFareError] = useState<string | null>(null);
+  const [rideId, setRideId] = useState<string | null>(null);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
+
+  const handleCheckFare = async () => {
+    if (!locationFrom || !locationTo || !schedule || !distance || !hours) {
       alert('Please fill in all required fields.');
       return;
     }
-    setBookingStep('complete');
+    setApiFareLoading(true);
+    setApiFareError(null);
+    try {
+      // Get user phone number from localStorage
+      let phoneNumber = '';
+      if (typeof window !== 'undefined') {
+        const user = localStorage.getItem('user');
+        if (user) {
+          const parsed = JSON.parse(user);
+          phoneNumber = parsed.phoneNumber || '';
+        }
+      }
+      const fareData = await calculateFareHourly(phoneNumber, Number(hours), locationFrom, locationTo);
+      if (fareData && fareData.fare_details) {
+        setApiFare(fareData.fare_details.fare);
+        setRideId(fareData.fare_details.ride_id);
+      } else if (fareData && typeof fareData.fare === 'number') {
+        setApiFare(fareData.fare);
+        setRideId(fareData.ride_id || null);
+      } else if (typeof fareData === 'number') {
+        setApiFare(fareData);
+      } else {
+        setApiFareError('Could not fetch fare from server.');
+      }
+      setBookingStep('complete');
+    } catch (err) {
+      setApiFareError('Could not fetch fare from server.');
+    } finally {
+      setApiFareLoading(false);
+    }
   };
 
-  const handlePay = () => {
-    alert('Payment successful! Your booking is confirmed.');
+  const handleBookingConfirmed = () => {
+    setShowBookingDialog(true);
+    setTimeout(() => {
+      setShowBookingDialog(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/my-trips';
+      }
+    }, 3000);
+  };
+
+  const handleCloseDialog = () => {
+    setShowBookingDialog(false);
+  };
+
+  const handleCopyRideId = () => {
+    if (rideId) {
+      navigator.clipboard.writeText(rideId);
+    }
   };
 
   const formatDateTime = (dateTime: string) => {
@@ -263,7 +315,7 @@ const HourlyRental: React.FC = () => {
   };
 
   const distanceInKm = parseFloat(distance);
-  const baseFare = distanceInKm * 20; // 20 rupees per km
+  const baseFare = apiFare !== null ? apiFare : distanceInKm * 20; // Prefer API fare
   const totalAmount = baseFare - discount;
 
   return (
@@ -469,9 +521,36 @@ const HourlyRental: React.FC = () => {
 
             <button
               onClick={handleCheckFare}
-              className="w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base"
+              className={`w-full bg-[#016B5D] text-white py-3 rounded-full hover:bg-[#014D40] transition-colors font-medium text-sm md:text-base flex items-center justify-center ${apiFareLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={apiFareLoading}
             >
-              Check Fare
+              {apiFareLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
+                    ></path>
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                'Check Fare'
+              )}
             </button>
           </div>
         ) : (
@@ -525,7 +604,13 @@ const HourlyRental: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base fare</span>
-                    <span className="font-medium text-gray-800">{Math.round(baseFare)}</span>
+                    <span className="font-medium text-gray-800">
+                      {apiFareLoading
+                        ? 'Loading...'
+                        : apiFare !== null
+                        ? Math.round(apiFare)
+                        : Math.round(baseFare)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Distance ({distance} km)</span>
@@ -550,17 +635,29 @@ const HourlyRental: React.FC = () => {
                       Apply
                     </button>
                   </div>
+                  {apiFareError && (
+                    <div className="text-red-600 text-xs">{apiFareError}</div>
+                  )}
                   <div className="flex justify-between pt-4 border-t border-gray-300 mt-4 text-base font-medium">
                     <span>Total Amount</span>
-                    <span>{totalAmount}</span>
+                    <span>
+                      {apiFareLoading
+                        ? 'Loading...'
+                        : apiFare !== null
+                        ? Math.round(totalAmount)
+                        : Math.round(totalAmount)}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-6 gap-3">
-                  <button className="border border-gray-300 rounded-full px-4 py-2 text-gray-800 text-sm font-medium hover:bg-gray-100 flex-1">
+                  <button
+                    className="border border-gray-300 rounded-full px-4 py-2 text-gray-800 text-sm font-medium hover:bg-gray-100 flex-1"
+                    onClick={handleBookingConfirmed}
+                  >
                     Pay in cash
                   </button>
                   <button
-                    onClick={handlePay}
+                    onClick={handleBookingConfirmed}
                     className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1"
                   >
                     Pay
@@ -604,7 +701,64 @@ const HourlyRental: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    {/* Booking Confirmation Dialog */}
+    {showBookingDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full flex flex-col items-center relative">
+          <button
+            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl"
+            onClick={handleCloseDialog}
+          >
+            ×
+          </button>
+          <div className="flex flex-col items-center">
+            {/* Green tick or driver icon */}
+            <div className="mb-4">
+              <svg
+                className="mx-auto"
+                width="64"
+                height="64"
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="32" cy="32" r="32" fill="#10B981" />
+                <path
+                  d="M20 34L29 43L44 28"
+                  stroke="white"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-semibold text-green-700 mb-2 text-center">Booking Confirmed!</h2>
+            <p className="text-gray-700 mb-4 text-center">Your ride has been booked successfully.</p>
+            {rideId && (
+              <div className="flex flex-col items-center mb-2 w-full">
+                <span className="text-gray-600 text-sm mb-1">Ride ID:</span>
+                <div className="flex items-center justify-center w-full">
+                  <span className="font-mono text-base bg-gray-100 px-2 py-1 rounded select-all break-all">{rideId}</span>
+                  <button
+                    onClick={handleCopyRideId}
+                    className="ml-2 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={handleCloseDialog}
+              className="mt-6 bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
   );
 };
 
