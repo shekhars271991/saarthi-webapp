@@ -14,7 +14,7 @@ const OutstationPage = () => {
   useEffect(() => {
     const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
     if (!user) {
-      router.replace('/login');
+      router.replace('/create-account');
     }
   }, [router]);
 

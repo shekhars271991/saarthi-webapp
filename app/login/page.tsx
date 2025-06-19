@@ -12,7 +12,7 @@ const LoginPage = () => {
 
   return   ( <div className="min-h-screen bg-white">
       <Header/>
-    <Login onGetOtp={handleGetOtp} />
+    <Login  />
       <Footer />
     </div>)
 };

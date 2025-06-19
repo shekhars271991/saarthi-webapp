@@ -11,6 +11,27 @@ declare global {
 }
 
 const HourlyRental: React.FC = () => {
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    // Simulate async authorization check (replace with real API if needed)
+    const checkAuth = async () => {
+      setAuthLoading(true);
+      let authorized = false;
+      if (typeof window !== 'undefined') {
+        const user = localStorage.getItem('user');
+        if (user) {
+          // Optionally, add more checks here (e.g., token expiry)
+          authorized = true;
+        }
+      }
+      setIsAuthorized(authorized);
+      setAuthLoading(false);
+    };
+    checkAuth();
+  }, []);
+
   const [bookingStep, setBookingStep] = useState<'form' | 'complete'>('form');
   const [tripType, setTripType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [locationFrom, setLocationFrom] = useState<string>('');
@@ -317,6 +338,49 @@ const HourlyRental: React.FC = () => {
   const distanceInKm = parseFloat(distance);
   const baseFare = apiFare !== null ? apiFare : distanceInKm * 20; // Prefer API fare
   const totalAmount = baseFare - discount;
+
+  if (authLoading) {
+    // Show loader while checking authorization
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <span className="flex items-center justify-center">
+          <svg
+            className="animate-spin h-10 w-10 mr-2 text-[#016B5D]"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
+            ></path>
+          </svg>
+       Loading....
+        </span>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    // Optionally, redirect or show an error
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-red-600 mb-4">Not authorized</h2>
+          <p className="text-gray-700">You are not authorized to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">

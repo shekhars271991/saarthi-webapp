@@ -19,7 +19,7 @@ const MyTripsPage = () => {
     if (typeof window !== 'undefined') {
       const user = localStorage.getItem('user');
       if (!user) {
-        router.replace('/login');
+        router.replace('/create-account');
         return;
       }
       const parsed = JSON.parse(user);
