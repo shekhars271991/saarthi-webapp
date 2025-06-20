@@ -1,7 +1,54 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane, Clock } from 'lucide-react';
-import { calculateFareHourly } from '../services/apiService';
+import { calculateFareHourly, confirmBooking } from '../services/apiService';
+
+// Adjusted fare API call to match new API signature
+const useHourlyRentalFare = () => {
+  const [apiFare, setApiFare] = React.useState<number | null>(null);
+  const [apiFareLoading, setApiFareLoading] = React.useState(false);
+  const [apiFareError, setApiFareError] = React.useState<string | null>(null);
+  const [rideId, setRideId] = React.useState<string | null>(null);
+
+  const checkFare = async (
+    userId: string,
+    hours: number,
+    pickupLocation: string,
+    pickupLat: number,
+    pickupLng: number,
+    pickupDatetime: string
+  ) => {
+    setApiFareLoading(true);
+    setApiFareError(null);
+    try {
+      const fareData = await calculateFareHourly(
+        userId,
+        hours,
+        pickupLocation,
+        pickupLat,
+        pickupLng,
+        pickupDatetime
+      );
+      if (fareData && fareData.fare_details) {
+        setApiFare(fareData.fare_details.fare);
+        setRideId(fareData?.ride_id);
+      } else if (fareData && typeof fareData.fare === 'number') {
+        setApiFare(fareData.fare);
+        setRideId(fareData.ride_id || null);
+      } else if (typeof fareData === 'number') {
+        setApiFare(fareData);
+      } else {
+        setApiFareError('Could not fetch fare from server.');
+      }
+    } catch {
+      setApiFareError('Could not fetch fare from server.');
+    } finally {
+      setApiFareLoading(false);
+    }
+  };
+
+  return { apiFare, apiFareLoading, apiFareError, rideId, checkFare };
+};
 
 // Declare Google Maps types
 declare global {
@@ -11,26 +58,10 @@ declare global {
 }
 
 const HourlyRental: React.FC = () => {
-  const [authLoading, setAuthLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const mode = process.env.NEXT_PUBLIC_MODE || 'prod';
 
-  useEffect(() => {
-    // Simulate async authorization check (replace with real API if needed)
-    const checkAuth = async () => {
-      setAuthLoading(true);
-      let authorized = false;
-      if (typeof window !== 'undefined') {
-        const user = localStorage.getItem('user');
-        if (user) {
-          // Optionally, add more checks here (e.g., token expiry)
-          authorized = true;
-        }
-      }
-      setIsAuthorized(authorized);
-      setAuthLoading(false);
-    };
-    checkAuth();
-  }, []);
+
+
 
   const [bookingStep, setBookingStep] = useState<'form' | 'complete'>('form');
   const [tripType, setTripType] = useState<'oneway' | 'roundtrip'>('oneway');
@@ -87,6 +118,70 @@ const HourlyRental: React.FC = () => {
   }, []);
 
   // Initialize autocomplete with custom dropdown
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const user = localStorage.getItem('user');
+      const pending = localStorage.getItem('pendingHourlyRental');
+      if (user && pending) {
+        try {
+          const data = JSON.parse(pending);
+          setTripType(data.tripType || 'oneway');
+          setLocationFrom(data.locationFrom || '');
+          setLocationTo(data.locationTo || '');
+          setSchedule(data.schedule || '');
+          setPassengers(data.passengers || 2);
+          setSuitcases(data.suitcases || 2);
+          setFlightNumber(data.flightNumber || '132');
+          setFromCoords(data.fromCoords || null);
+          setToCoords(data.toCoords || null);
+          setDistance(data.distance || '');
+          setHours(data.hours || '');
+          // Call check fare API with restored data
+          (async () => {
+            setApiFareLoading(true);
+            setApiFareError(null);
+            let phoneNumber = '';
+            let userId = '';
+            try {
+              const parsedUser = JSON.parse(user);
+              phoneNumber = parsedUser.phoneNumber || '';
+              userId = parsedUser._id || '';
+            } catch {}
+            try {
+              const fareData = await calculateFareHourly(
+                userId,
+                Number(data.hours),
+                data.locationFrom,
+                data.fromCoords?.lat || 0,
+                data.fromCoords?.lng || 0,
+                data.schedule
+              );
+              if (fareData && fareData.fare_details) {
+                setApiFare(fareData.fare_details.fare);
+                setRideId(fareData?.ride_id);
+              } else if (fareData && typeof fareData.fare === 'number') {
+                setApiFare(fareData.fare);
+                setRideId(fareData.ride_id || null);
+              } else if (typeof fareData === 'number') {
+                setApiFare(fareData);
+              } else {
+                setApiFareError('Could not fetch fare from server.');
+              }
+              setBookingStep('complete');
+            } catch {
+              setApiFareError('Could not fetch fare from server.');
+            } finally {
+              setApiFareLoading(false);
+              localStorage.removeItem('pendingHourlyRental');
+            }
+          })();
+        } catch {
+          localStorage.removeItem('pendingHourlyRental');
+        }
+      }
+    }
+  }, []);
+
   const initializeAutocomplete = () => {
     if (!window.google) return;
 
@@ -272,26 +367,57 @@ const HourlyRental: React.FC = () => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !locationTo || !schedule || !distance || !hours) {
+    if (!locationFrom || !locationTo || !schedule || !hours) {
       alert('Please fill in all required fields.');
+      return;
+    }
+    let user = null;
+    if (typeof window !== 'undefined') {
+      user = localStorage.getItem('user');
+    }
+    if (!user) {
+      // Store form data in localStorage and redirect to login
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'pendingHourlyRental',
+          JSON.stringify({
+            tripType,
+            locationFrom,
+            locationTo,
+            schedule,
+            passengers,
+            suitcases,
+            flightNumber,
+            fromCoords,
+            toCoords,
+            hours,
+          })
+        );
+        window.location.href = '/login?redirect=hourly-rental';
+      }
       return;
     }
     setApiFareLoading(true);
     setApiFareError(null);
     try {
-      // Get user phone number from localStorage
       let phoneNumber = '';
-      if (typeof window !== 'undefined') {
-        const user = localStorage.getItem('user');
-        if (user) {
-          const parsed = JSON.parse(user);
-          phoneNumber = parsed.phoneNumber || '';
-        }
+      let userId = '';
+      if (user) {
+        const parsed = JSON.parse(user);
+        phoneNumber = parsed.phoneNumber || '';
+        userId = parsed._id || '';
       }
-      const fareData = await calculateFareHourly(phoneNumber, Number(hours), locationFrom, locationTo);
+      const fareData = await calculateFareHourly(
+        userId,
+        Number(hours),
+        locationFrom,
+        fromCoords?.lat || 0,
+        fromCoords?.lng || 0,
+        schedule
+      );
       if (fareData && fareData.fare_details) {
         setApiFare(fareData.fare_details.fare);
-        setRideId(fareData.fare_details.ride_id);
+        setRideId(fareData?.ride_id);
       } else if (fareData && typeof fareData.fare === 'number') {
         setApiFare(fareData.fare);
         setRideId(fareData.ride_id || null);
@@ -308,15 +434,18 @@ const HourlyRental: React.FC = () => {
     }
   };
 
-  const handleBookingConfirmed = () => {
-    setShowBookingDialog(true);
-    setTimeout(() => {
-      setShowBookingDialog(false);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/my-trips';
+  const handleBookingConfirmed = async () => {
+      if (!rideId) {
+        alert('No ride to confirm.');
+        return;
       }
-    }, 3000);
-  };
+      try {
+        await confirmBooking(rideId);
+        setShowBookingDialog(true);
+      } catch {
+        alert('Failed to confirm booking.');
+      }
+    };
 
   const handleCloseDialog = () => {
     setShowBookingDialog(false);
@@ -339,48 +468,7 @@ const HourlyRental: React.FC = () => {
   const baseFare = apiFare !== null ? apiFare : distanceInKm * 20; // Prefer API fare
   const totalAmount = baseFare - discount;
 
-  if (authLoading) {
-    // Show loader while checking authorization
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <span className="flex items-center justify-center">
-          <svg
-            className="animate-spin h-10 w-10 mr-2 text-[#016B5D]"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
-            ></path>
-          </svg>
-       Loading....
-        </span>
-      </div>
-    );
-  }
 
-  if (!isAuthorized) {
-    // Optionally, redirect or show an error
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-red-600 mb-4">Not authorized</h2>
-          <p className="text-gray-700">You are not authorized to access this page.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
@@ -433,43 +521,55 @@ const HourlyRental: React.FC = () => {
             <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                <input
-                  ref={fromInputRef}
-                  type="text"
-                  placeholder="Location"
-                  value={locationFrom}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFromInputChange(e.target.value)}
-                  onFocus={() => setShowFromDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
-                  className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
-                />
-                {showFromDropdown && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                    <div
-                      onClick={() => handleMapSelectionOption('from')}
-                      className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-2 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C8.13 2 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
-                      Select location on map
-                    </div>
-                    {fromSuggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        onClick={() => handleSuggestionSelect(suggestion, 'from')}
-                        className="p-3 hover:bg-gray-100 cursor-pointer"
-                      >
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                          <div>
-                            <div className="font-medium text-sm md:text-base">{suggestion.structured_formatting?.main_text}</div>
-                            <div className="text-xs md:text-sm text-gray-500">{suggestion.structured_formatting?.secondary_text}</div>
-                          </div>
+                {mode === 'test' ? (
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={locationFrom}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationFrom(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                  />
+                ) : (
+                  <>
+                    <input
+                      ref={fromInputRef}
+                      type="text"
+                      placeholder="Location"
+                      value={locationFrom}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFromInputChange(e.target.value)}
+                      onFocus={() => setShowFromDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
+                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                    />
+                    {showFromDropdown && (
+                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <div
+                          onClick={() => handleMapSelectionOption('from')}
+                          className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-2 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C8.13 2 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                          </svg>
+                          Select location on map
                         </div>
+                        {fromSuggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleSuggestionSelect(suggestion, 'from')}
+                            className="p-3 hover:bg-gray-100 cursor-pointer"
+                          >
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                              <div>
+                                <div className="font-medium text-sm md:text-base">{suggestion.structured_formatting?.main_text}</div>
+                                <div className="text-xs md:text-sm text-gray-500">{suggestion.structured_formatting?.secondary_text}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -812,12 +912,12 @@ const HourlyRental: React.FC = () => {
                 </div>
               </div>
             )}
-            <button
-              onClick={handleCloseDialog}
+            <a
+             href="/my-trips"
               className="mt-6 bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
             >
-              Close
-            </button>
+              Your Profile
+            </a>
           </div>
         </div>
       </div>

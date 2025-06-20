@@ -45,12 +45,11 @@ const Header = () => {
           {/* Right Side: Book a Ride and Hamburger Menu for Mobile */}
           <div className="flex items-center space-x-3 md:space-x-8">
             {/* Book a Ride Button (Visible on Mobile) */}
-            <a
-              href="/"
+            <div
               className="bg-[#016B5D] text-white px-6 py-2.5 rounded-full hover:bg-teal-700 transition-colors font-medium text-sm md:hidden"
             >
-              Book a Ride
-            </a>
+              Bangalore
+            </div>
 
             {/* Hamburger Menu for Mobile */}
             <div className="md:hidden">
@@ -85,12 +84,11 @@ const Header = () => {
 
               {/* Action Buttons */}
               <div className="flex items-center space-x-3">
-                <a
-                  href="/"
+                <div
                   className="bg-[#016B5D] text-white px-6 py-2.5 rounded-full hover:bg-teal-700 transition-colors font-medium text-sm"
                 >
-                  Book a Ride
-                </a>
+                  Bangalore
+                </div>
                 {!user ? (
                   <a
                     href="/login"
@@ -105,26 +103,26 @@ const Header = () => {
                       onClick={() => setDropdownOpen((open) => !open)}
                     >
                       <User className="w-5 h-5" />
-                      <span>{user.name}</span>
-                      {dropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                    {dropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                        <div className="px-4 py-3 text-gray-700 font-medium border-b">{user.name}</div>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 font-medium"
-                        >
-                          Logout
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    <span>{user.name || ""}</span>
+                    {dropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      <div className="px-4 py-3 text-gray-700 font-medium border-b">{user.name || ""}</div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 font-medium"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Sliding Overlay Menu for Mobile */}

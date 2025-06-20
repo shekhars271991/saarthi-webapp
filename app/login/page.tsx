@@ -1,20 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Login from '../../app/components/Login';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 
-const LoginPage = () => {
-  const handleGetOtp = () => {
-    // Handle OTP request logic here, e.g., navigate to verify account page
-  };
+import { useSearchParams } from 'next/navigation';
 
-  return   ( <div className="min-h-screen bg-white">
-      <Header/>
-    <Login  />
+const LoginPage = () => {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+    window.location.href= redirectTo=="/"?"/":"/"+redirectTo
+      return;
+    }},[])
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      <Login redirectTo={redirectTo} />
       <Footer />
-    </div>)
+    </div>
+  );
 };
 
 export default LoginPage;

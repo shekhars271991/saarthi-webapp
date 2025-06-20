@@ -1,7 +1,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, MapPin, Info, Plane } from 'lucide-react';
-import { calculateFareOutstation } from '../services/apiService';
+import { calculateFareOutstation, confirmBooking } from '../services/apiService';
+
+// New fare check API endpoint from Postman collection
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+
+const checkFareApi = async (data: any) => {
+  try {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api'}/fare/check`, data);
+    return response.data;
+  } catch (error) {
+    toast.error('Failed to check fare');
+    throw error;
+  }
+};
 
 // Declare Google Maps types
 declare global {
@@ -10,27 +24,11 @@ declare global {
   }
 }
 
-const OutStation: React.FC = () => {
-  const [authLoading, setAuthLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+const Outstation: React.FC = () => {
+  const mode = process.env.NEXT_PUBLIC_MODE || 'prod';
 
-  useEffect(() => {
-    // Simulate async authorization check (replace with real API if needed)
-    const checkAuth = async () => {
-      setAuthLoading(true);
-      let authorized = false;
-      if (typeof window !== 'undefined') {
-        const user = localStorage.getItem('user');
-        if (user) {
-          // Optionally, add more checks here (e.g., token expiry)
-          authorized = true;
-        }
-      }
-      setIsAuthorized(authorized);
-      setAuthLoading(false);
-    };
-    checkAuth();
-  }, []);
+
+
 
   const [bookingStep, setBookingStep] = useState<'form' | 'complete'>('form');
   const [tripType, setTripType] = useState<'oneway' | 'roundtrip'>('oneway');
@@ -87,6 +85,90 @@ const OutStation: React.FC = () => {
   }, []);
 
   // Initialize autocomplete with custom dropdown
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    const user = localStorage.getItem('user');
+    const pending = localStorage.getItem('pendingOutstation');
+
+    if (user && pending) {
+      try {
+        const data = JSON.parse(pending);
+        // Set state with fallback values
+        setTripType(data.tripType || 'oneway');
+        setLocationFrom(data.locationFrom || '');
+        setLocationTo(data.locationTo || '');
+        setSchedule(data.schedule || '');
+        setPassengers(data.passengers || 2);
+        setSuitcases(data.suitcases || 2);
+        setFlightNumber(data.flightNumber || '132');
+        setFromCoords(data.fromCoords || null);
+        setToCoords(data.toCoords || null);
+        setDistance(data.distance || '');
+
+        // Async function to check fare
+        (async () => {
+          setApiFareLoading(true);
+          setApiFareError(null);
+
+          let phoneNumber = '';
+          let userId = '';
+
+          // Parse user data
+          try {
+            const parsedUser = JSON.parse(user);
+            userId = parsedUser?._id || '';
+            phoneNumber = parsedUser?.phoneNumber || '';
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+          }
+
+          // Prepare payload for API call
+          const dataPayload = {
+            user_id: userId,
+            ride_type: 'outstation',
+            hours: 0,
+            pickup_location: data.locationFrom || '',
+            drop_location: data.locationTo || '', // Fixed: Use data.locationTo instead of undefined locationTo
+            pickup_lat: data.fromCoords?.lat || 0,
+            pickup_lng: data.fromCoords?.lng || 0,
+            drop_lat: data.toCoords?.lat || 0,
+            drop_lng: data.toCoords?.lng || 0,
+            pickup_datetime: data.schedule || '',
+          };
+
+          try {
+            // Ensure checkFareApi is defined and properly imported
+            const fareData = await checkFareApi(dataPayload); // Fixed: Pass dataPayload to API call
+            if (fareData?.fare_details?.fare) {
+              setApiFare(fareData.fare_details.fare);
+              setRideId(fareData.ride_id || null);
+            } else if (typeof fareData?.fare === 'number') {
+              setApiFare(fareData.fare);
+              setRideId(fareData.ride_id || null);
+            } else if (typeof fareData === 'number') {
+              setApiFare(fareData);
+              setRideId(null);
+            } else {
+              setApiFareError('Invalid fare data received from server.');
+            }
+            setBookingStep('complete');
+          } catch (error) {
+            console.error('Error fetching fare:', error);
+            setApiFareError('Could not fetch fare from server.');
+          } finally {
+            setApiFareLoading(false);
+            localStorage.removeItem('pendingOutstation');
+          }
+        })();
+      } catch (error) {
+        console.error('Error processing pending outstation data:', error);
+        setApiFareError('Failed to process booking data.');
+        localStorage.removeItem('pendingOutstation');
+      }
+    }
+  }
+}, []);
+
   const initializeAutocomplete = () => {
     if (!window.google) return;
 
@@ -272,26 +354,62 @@ const OutStation: React.FC = () => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !locationTo || !schedule || !distance) {
+    if (!locationFrom || !locationTo || !schedule) {
       alert('Please fill in all required fields.');
+      return;
+    }
+    let user = null;
+    if (typeof window !== 'undefined') {
+      user = localStorage.getItem('user');
+    }
+    if (!user) {
+      // Store form data in localStorage and redirect to login
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'pendingOutstation',
+          JSON.stringify({
+            tripType,
+            locationFrom,
+            locationTo,
+            schedule,
+            passengers,
+            suitcases,
+            flightNumber,
+            fromCoords,
+            toCoords,
+          })
+        );
+        window.location.href = '/login?redirect=outstation';
+      }
       return;
     }
     setApiFareLoading(true);
     setApiFareError(null);
     try {
-      // Get user phone number from localStorage
       let phoneNumber = '';
-      if (typeof window !== 'undefined') {
-        const user = localStorage.getItem('user');
-        if (user) {
-          const parsed = JSON.parse(user);
-          phoneNumber = parsed.phoneNumber || '';
-        }
+      let userId = '';
+      if (user) {
+        const parsed = JSON.parse(user);
+        phoneNumber = parsed.phoneNumber || '';
+        userId = parsed._id || '';
       }
-      const fareData = await calculateFareOutstation(phoneNumber, locationFrom, locationTo);
+      // Prepare data for new fare check API
+      const data = {
+        user_id: userId,
+        ride_type: 'outstation',
+        hours: 0,
+        pickup_location: locationFrom,
+        drop_location: locationTo,
+        pickup_lat: fromCoords?.lat || 0,
+        pickup_lng: fromCoords?.lng || 0,
+        drop_lat: toCoords?.lat || 0,
+        drop_lng: toCoords?.lng || 0,
+        pickup_datetime: schedule,
+      };
+      const fareData = await checkFareApi(data);
       if (fareData && fareData.fare_details) {
         setApiFare(fareData.fare_details.fare);
-        setRideId(fareData.fare_details.ride_id);
+        setRideId(fareData?.ride_id);
       } else if (fareData && typeof fareData.fare === 'number') {
         setApiFare(fareData.fare);
         setRideId(fareData.ride_id || null);
@@ -308,15 +426,18 @@ const OutStation: React.FC = () => {
     }
   };
 
-  const handleBookingConfirmed = () => {
-    setShowBookingDialog(true);
-    setTimeout(() => {
-      setShowBookingDialog(false);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/my-trips';
-      }
-    }, 3000);
-  };
+ const handleBookingConfirmed = async () => {
+     if (!rideId) {
+       alert('No ride to confirm.');
+       return;
+     }
+     try {
+       await confirmBooking(rideId);
+       setShowBookingDialog(true);
+     } catch {
+       alert('Failed to confirm booking.');
+     }
+   };
 
   const handleCloseDialog = () => {
     setShowBookingDialog(false);
@@ -339,48 +460,7 @@ const OutStation: React.FC = () => {
   const baseFare = apiFare !== null ? apiFare : distanceInKm * 20; // Prefer API fare
   const totalAmount = baseFare - discount;
 
-  if (authLoading) {
-    // Show loader while checking authorization
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <span className="flex items-center justify-center">
-          <svg
-            className="animate-spin h-10 w-10 mr-2 text-[#016B5D]"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"
-            ></path>
-          </svg>
-       Loading....
-        </span>
-      </div>
-    );
-  }
 
-  if (!isAuthorized) {
-    // Optionally, redirect or show an error
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-red-600 mb-4">Not authorized</h2>
-          <p className="text-gray-700">You are not authorized to access this page.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
@@ -428,45 +508,57 @@ const OutStation: React.FC = () => {
            
 
             <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
-              <div className="relative">
+            <div className="relative">
                 <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-                <input
-                  ref={fromInputRef}
-                  type="text"
-                  placeholder="Location"
-                  value={locationFrom}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFromInputChange(e.target.value)}
-                  onFocus={() => setShowFromDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
-                  className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
-                />
-                {showFromDropdown && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                    <div
-                      onClick={() => handleMapSelectionOption('from')}
-                      className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-2 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C8.13 2 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
-                      Select location on map
-                    </div>
-                    {fromSuggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        onClick={() => handleSuggestionSelect(suggestion, 'from')}
-                        className="p-3 hover:bg-gray-100 cursor-pointer"
-                      >
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                          <div>
-                            <div className="font-medium text-sm md:text-base">{suggestion.structured_formatting?.main_text}</div>
-                            <div className="text-xs md:text-sm text-gray-500">{suggestion.structured_formatting?.secondary_text}</div>
-                          </div>
+                {mode === 'test' ? (
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={locationFrom}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationFrom(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                  />
+                ) : (
+                  <>
+                    <input
+                      ref={fromInputRef}
+                      type="text"
+                      placeholder="Location"
+                      value={locationFrom}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFromInputChange(e.target.value)}
+                      onFocus={() => setShowFromDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowFromDropdown(false), 200)}
+                      className="w-full border border-gray-300 rounded-md pl-10 py-2 md:py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600"
+                    />
+                    {showFromDropdown && (
+                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <div
+                          onClick={() => handleMapSelectionOption('from')}
+                          className="p-3 hover:bg-gray-100 cursor-pointer border-b flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-2 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C8.13 2 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                          </svg>
+                          Select location on map
                         </div>
+                        {fromSuggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleSuggestionSelect(suggestion, 'from')}
+                            className="p-3 hover:bg-gray-100 cursor-pointer"
+                          >
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                              <div>
+                                <div className="font-medium text-sm md:text-base">{suggestion.structured_formatting?.main_text}</div>
+                                <div className="text-xs md:text-sm text-gray-500">{suggestion.structured_formatting?.secondary_text}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -627,14 +719,14 @@ const OutStation: React.FC = () => {
                       <MapPin className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-500">Pickup</p>
-                        <p className="text-base font-medium text-gray-800">{tripType === 'oneway' ? locationTo : locationFrom || 'Janakpuri'}</p>
+                        <p className="text-base font-medium text-gray-800">{tripType === 'oneway' ? locationFrom || 'Janakpuri' : locationTo}</p>
                       </div>
                     </div>
                     <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
                       <MapPin className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-500">Drop</p>
-                        <p className="text-base font-medium text-gray-800">{tripType === 'roundtrip' ? locationFrom : locationTo || 'Airport'}</p>
+                        <p className="text-base font-medium text-gray-800">{tripType === 'roundtrip' ? locationTo || 'Airport' : locationFrom}</p>
                       </div>
                     </div>
                     <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
@@ -809,12 +901,12 @@ const OutStation: React.FC = () => {
                 </div>
               </div>
             )}
-            <button
-              onClick={handleCloseDialog}
+            <a
+             href="/my-trips"
               className="mt-6 bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium"
             >
-              Close
-            </button>
+              Your Profile
+            </a>
           </div>
         </div>
       </div>
@@ -823,4 +915,4 @@ const OutStation: React.FC = () => {
   );
 };
 
-export default OutStation;
+export default Outstation;

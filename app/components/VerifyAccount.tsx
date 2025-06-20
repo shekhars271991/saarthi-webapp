@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-
 import { verifyOtp, generateOTP } from '../services/apiService';
 import { toast } from 'react-hot-toast';
 
-const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: string;verifyApi:boolean; onVerified: (otp:string) => void }) => {
+const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: string; verifyApi: boolean; onVerified: (otp: string) => void }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +33,25 @@ const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: st
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, index: number) => {
+    if (index === 0) {
+      e.preventDefault();
+      const pastedData = e.clipboardData.getData('text').trim();
+      // Ensure the pasted data is exactly 6 digits
+      if (/^\d{6}$/.test(pastedData)) {
+        const newOtp = pastedData.split('').slice(0, 6); // Take first 6 digits
+        setOtp(newOtp);
+        inputsRef.current[5]?.focus(); // Focus on the last input
+        // Optionally auto-submit if all digits are filled
+        if (newOtp.every(digit => digit !== '')) {
+          handleSubmit(new Event('submit') as any);
+        }
+      } else {
+        toast.error('Please paste a valid 6-digit OTP (e.g., 655526)');
+      }
+    }
+  };
+
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputsRef.current[index - 1]?.focus();
@@ -47,15 +65,9 @@ const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: st
       try {
         const otpCode = otp.join('');
         let user = null;
-        if(verifyApi){
+        if (verifyApi) {
           user = await verifyOtp(phoneNumber, otpCode);
         }
-        // toast.success('OTP verified successfully', {
-        //   style: {
-        //     background: '#10B981',
-        //     color: '#FFFFFF',
-        //   },
-        // });
         onVerified(user?.user_details);
       } catch (error) {
         toast.error('OTP verification failed', {
@@ -68,10 +80,10 @@ const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: st
         setLoading(false);
       }
     } else {
-      toast.error('Please enter the complete 6-digit code.');
+      console.log("")
+      // toast.error('Please enter the complete 6-digit code.');
     }
   };
-
 
   const handleResend = async () => {
     setResendLoading(true);
@@ -87,7 +99,7 @@ const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: st
   };
 
   return (
-    <div className="bg-white  w-full max-w-sm space-y-6   mx-4 sm:mx-auto">
+    <div className="bg-white w-full max-w-sm space-y-6 mx-4 sm:mx-auto">
       <div className="mb-6 flex items-center space-x-2">
         <img src="./login-logo.png" alt="Logo" className="h-16" />
         <h1 className="text-2xl font-semibold">Verify account</h1>
@@ -105,6 +117,7 @@ const VerifyAccount = ({ phoneNumber, verifyApi, onVerified }: { phoneNumber: st
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={(e) => handlePaste(e, index)}
               ref={(el) => { inputsRef.current[index] = el; }}
               className="w-12 h-14 border border-gray-300 rounded-md text-center text-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
             />

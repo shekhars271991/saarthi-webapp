@@ -59,27 +59,49 @@ export const loginOtp = async (phone_number: string, otp: string) => {
   }
 };
 
-export const calculateFareHourly = async (phone_number: string, hours: number, pickup_location: string, drop_location: string) => {
+export const calculateFareHourly = async (user_id: string, hours: number, pickup_location: string, pickup_lat: number, pickup_lng: number, pickup_datetime: string) => {
   try {
-    const response = await api.post('/fare/hourly', { phone_number, hours, pickup_location, drop_location });
+    const response = await api.post('/fare/check', {
+      user_id,
+      ride_type: 'hourly',
+      hours,
+      pickup_location,
+      pickup_lat,
+      pickup_lng,
+      pickup_datetime,
+    });
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-export const calculateFareOutstation = async (phone_number: string, pickup_location: string, drop_location: string) => {
+export const calculateFareOutstation = async (user_id: string, pickup_location: string, pickup_lat: number, pickup_lng: number, pickup_datetime: string) => {
   try {
-    const response = await api.post('/fare/outstation', { phone_number, pickup_location, drop_location });
+    const response = await api.post('/fare/check', {
+      user_id,
+      ride_type: 'outstation',
+      pickup_location,
+      pickup_lat,
+      pickup_lng,
+      pickup_datetime,
+    });
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-export const calculateFareAirTransfer = async (phone_number: string, pickup_location: string, drop_location: string) => {
+export const calculateFareAirTransfer = async (user_id: string, pickup_location: string, pickup_lat: number, pickup_lng: number, pickup_datetime: string) => {
   try {
-    const response = await api.post('/fare/air-transfer', { phone_number, pickup_location, drop_location });
+    const response = await api.post('/fare/check', {
+      user_id,
+      ride_type: 'airport-transfer',
+      pickup_location,
+      pickup_lat,
+      pickup_lng,
+      pickup_datetime,
+    });
     return response.data;
   } catch (error) {
     handleError(error);
@@ -113,3 +135,32 @@ export const getTestimonials = async () => {
     handleError(error);
   }
 };
+
+export const confirmBooking = async (ride_id: string) => {
+  try {
+    const response = await api.post('/booking/confirm', { ride_id });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const cancelRide = async (ride_id: string, cancel_reason: string) => {
+  try {
+    const response = await api.post('/ride/cancel', { ride_id, cancel_reason });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+
+export const updateUserProfile = async (userId:any, name:any) => {
+  try {
+    const response = await api.post('/user/update-profile', {user_id :userId, name });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+

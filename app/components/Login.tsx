@@ -7,7 +7,11 @@ import { toast } from 'react-hot-toast';
 import { generateOTP, loginOtp } from '../services/apiService';
 import VerifyAccount from './VerifyAccount';
 
-const Login = () => {
+interface LoginProps {
+  redirectTo?: string;
+}
+
+const Login: React.FC<LoginProps> = ({ redirectTo = '/' }) => {
   const [phoneCode, setPhoneCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [step, setStep] = useState<'login' | 'verify'>('login');
@@ -68,7 +72,7 @@ const Login = () => {
             color: '#FFFFFF',
           },
         });
-        router.push('/'); // Adjust redirect as needed
+        router.push(redirectTo=="/"?"/":"/"+redirectTo); // Use redirectTo prop here
       } else {
         toast.error('Login failed: Invalid user data', {
           style: {
@@ -102,17 +106,13 @@ const Login = () => {
               <p className="mb-6 text-gray-600">Enter your phone number below to login to your account</p>
               <form onSubmit={handleLoginSubmit} className="space-y-6">
                 <div className="flex space-x-3">
-                  <select
+                  <input
+                  disabled
                     value={phoneCode}
-                    onChange={(e) => setPhoneCode(e.target.value)}
-                    className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600"
-                  >
-                    <option value="+91">+91</option>
-                    <option value="+251">+251</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                    {/* Add more country codes as needed */}
-                  </select>
+                    
+                    className="w-20 border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600"
+                  />
+               
                   <input
                     type="tel"
                     maxLength={10}
@@ -160,9 +160,9 @@ const Login = () => {
                   )}
                 </button>
               </form>
-              <p className="mt-6 text-center text-gray-600">
+              {/* <p className="mt-6 text-center text-gray-600">
                 Don't have an account? <a href="/create-account" className="font-semibold underline">Register</a>
-              </p>
+              </p> */}
             </>
             ) : (
             <VerifyAccount phoneNumber={phoneForVerification} verifyApi={true} onVerified={handleVerificationSuccess} />
