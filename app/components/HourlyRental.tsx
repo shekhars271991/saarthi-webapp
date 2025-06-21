@@ -619,13 +619,15 @@ const HourlyRental: React.FC = () => {
             <div className="mb-4 md:mb-6">
               <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">Schedule</label>
               <div className="relative">
-                <input
-                  type="datetime-local"
-                  value={schedule}
-                    min={new Date().toISOString().slice(0, 16)}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchedule(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md py-2 md:py-3 px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600 appearance-none"
-                />
+           <input
+  type="datetime-local"
+  value={schedule}
+  min={new Date().toISOString().slice(0, 16)}
+  max={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
+  step="300"
+  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchedule(e.target.value)}
+  className="w-full border border-gray-300 rounded-md py-2 md:py-3 px-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-teal-600 appearance-none"
+/>
           
               </div>
             </div>
@@ -774,6 +776,11 @@ const HourlyRental: React.FC = () => {
                         : apiFare !== null
                         ? Math.round(apiFare)
                         : Math.round(baseFare)}
+
+                        {
+                          " "
+                        }
+                        {"INR"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -810,23 +817,26 @@ const HourlyRental: React.FC = () => {
                         : apiFare !== null
                         ? Math.round(totalAmount)
                         : Math.round(totalAmount)}
+                        {
+                          " "
+                        }
+                        {"INR"}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-6 gap-3">
-                  <button
-                    className="border border-gray-300 rounded-full px-4 py-2 text-gray-800 text-sm font-medium hover:bg-gray-100 flex-1"
-                    onClick={handleBookingConfirmed}
-                  >
-                    Pay in cash
-                  </button>
-                  <button
+                 <button
                     onClick={handleBookingConfirmed}
                     className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-sm font-medium flex-1"
                   >
-                    Pay
+                    Confirm Booking
                   </button>
+
+                  
                 </div>
+                <br/>
+                <h6 className='text-xs'>You can make the payment directly to the driver via UPI after completion of the trip</h6>
+           
               </div>
             </div>
           </div>

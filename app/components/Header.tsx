@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Menu, X, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, Menu, X, User, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const Header = () => {
@@ -51,6 +51,8 @@ const Header = () => {
               Bangalore
             </div>
 
+            
+
             {/* Hamburger Menu for Mobile */}
             <div className="md:hidden">
               <button
@@ -89,6 +91,12 @@ const Header = () => {
                 >
                   Bangalore
                 </div>
+                   <a
+                   href="/"
+                  className="bg-[#016B5D] text-white px-6 py-2.5 rounded-full hover:bg-teal-700 transition-colors font-medium text-sm"
+                >
+                 <Home/>
+                </a>
                 {!user ? (
                   <a
                     href="/login"
