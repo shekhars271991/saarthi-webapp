@@ -71,6 +71,8 @@ const Footer = () => {
           {/* Contact Us */}
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+            <h3 className="text-gray-300 hover:text-white transition-colors">Support and Queries <br/>
+              ( +91 766156671X)</h3>
             <div className="flex justify-center md:justify-start space-x-4">
               <a
                 href="#"

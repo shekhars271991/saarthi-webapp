@@ -259,74 +259,6 @@ Thank you for riding with us!
       <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* User Name Section */}
-
-        <div className="flex items-center mb-4">
-          
-          <h2 className="text-xl font-semibold truncate max-w-xs mr-2" >
-             Welcome {"  "}
-              </h2>
-          {isEditingName ? (
-            <div className="flex items-center space-x-2 w-full max-w-xs">
-              <input
-                ref={nameInputRef}
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                onKeyDown={handleNameKeyDown}
-                maxLength={30}
-                placeholder="Enter your name"
-                className="border border-gray-300 rounded px-3 py-1 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#016B5D] flex-1"
-                disabled={nameUpdateLoading}
-              />
-              <button
-                onClick={handleNameSave}
-                disabled={nameUpdateLoading}
-                className="bg-[#016B5D] text-white px-3 py-1 rounded text-sm hover:bg-teal-700 disabled:opacity-50"
-              >
-                {nameUpdateLoading ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditingName(false);
-                  const userStr = localStorage.getItem('user');
-                  if (userStr) {
-                    try {
-                      const user = JSON.parse(userStr);
-                      setUserName(user.name || '');
-                    } catch {
-                      setUserName('');
-                    }
-                  }
-                }}
-                disabled={nameUpdateLoading}
-                className="bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm hover:bg-gray-300 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : userName.trim() ? (
-            <div className="flex items-center space-x-2">
-              <h2 className="text-xl font-semibold truncate max-w-xs" title={userName}>
-                {userName.length > 30 ? userName.slice(0, 30) + '...' : userName}
-              </h2>
-              <button
-                onClick={() => setIsEditingName(true)}
-                aria-label="Edit name"
-                className="text-gray-600 hover:text-gray-900 focus:outline-none p-1"
-              >
-                <Edit className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsEditingName(true)}
-              className="text-[#016B5D] font-semibold text-lg hover:underline focus:outline-none"
-            >
-              + Add Name
-            </button>
-          )}
-        </div>
-        <h3 className="text-xs font-semibold mb-6">{userPhone}</h3>
         <h1 className="text-2xl font-semibold mb-6">My Trips</h1>
         
         {loading ? (
@@ -341,8 +273,17 @@ Thank you for riding with us!
                 className="bg-[#F2F7F5] rounded-xl p-6 flex flex-col md:flex-row md:items-center md:justify-between"
               >
                 <div>
+                   <div className="font-medium text-lg mb-1">
+                    {trip.type === 'hourly'
+                      ? `City Rental for ${trip.hours || 1} hour${trip.hours && trip.hours > 1 ? 's' : ''}`
+                      : trip.type === 'outstation'
+                      ? 'Outstation Trip'
+                      : trip.type === 'airport-transfer'
+                      ? `Airport Transfer (${trip.airportDirection === 'to' ? 'To' : 'From'} ${trip.airportTerminal})`
+                      : 'Trip'}
+                  </div>
                   <div className="text-xs text-gray-500 mb-1">
-                    Trip ID: {trip._id}
+                    Trip ID: xxxxxxxxx{trip._id?.slice(-4)}
                   </div>
                   <div className="text-xs text-gray-500 mb-1">
                     {trip.pickupDatetime
@@ -356,15 +297,7 @@ Thank you for riding with us!
                         })}`
                       : 'N/A'}
                   </div>
-                  <div className="font-medium text-lg mb-1">
-                    {trip.type === 'hourly'
-                      ? `City Rental for ${trip.hours || 1} hour${trip.hours && trip.hours > 1 ? 's' : ''}`
-                      : trip.type === 'outstation'
-                      ? 'Outstation Trip'
-                      : trip.type === 'airport-transfer'
-                      ? `Airport Transfer (${trip.airportDirection === 'to' ? 'To' : 'From'} ${trip.airportTerminal})`
-                      : 'Trip'}
-                  </div>
+                 
                   <div className="text-base text-gray-700">
                     Pickup: {trip.pickupLocation || 'N/A'}
                     {trip.dropLocation && ` → Drop: ${trip.dropLocation}`}
@@ -375,11 +308,22 @@ Thank you for riding with us!
                   <div className="text-xs text-gray-500 mt-1">
                     Booked: {trip.createdAt ? new Date(trip.createdAt).toLocaleString() : 'N/A'}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Status: {trip.status || 'N/A'}
-                  </div>
+                 
                 </div>
                 <div className="flex items-center space-x-2 mt-4 md:mt-0 md:ml-6">
+                  <div
+                        className={`text-xs font-medium px-3 py-1 rounded-full ${
+                          trip.status === 'confirmed'
+                            ? 'bg-green-400 text-white'
+                            : trip.status === 'completed'
+                            ? 'bg-blue-400 text-white'
+                            : trip.status === 'cancelled'
+                            ? 'bg-red-400 text-white'
+                            : 'bg-gray-400 text-white'
+                        }`}
+                      >
+                        Status: {trip.status || 'N/A'}
+                      </div>
                   {trip.status === 'confirmed' && !isPickupWithin3Hours(trip.pickupDatetime) && (
                     <button
                       onClick={() => handleCancelClick(trip._id || '')}

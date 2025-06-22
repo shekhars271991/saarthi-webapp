@@ -3,11 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Menu, X, User, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ProfileInfo from './ProfileInfo';
+
+
+
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -114,17 +119,27 @@ const Header = () => {
                     <span>{user.name || ""}</span>
                     {dropdownOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
-                  {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                      <div className="px-4 py-3 text-gray-700 font-medium border-b">{user.name || ""}</div>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 font-medium"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
+                    {dropdownOpen && (
+                      <>
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                          <div className="px-4 py-3 text-gray-700 font-medium border-b">{user.name || ""}</div>
+                          <button
+                            onClick={() => setShowProfile(true)}
+                            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 font-medium border-b"
+                          >
+                            Profile
+                          </button>
+                          <button
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 font-medium"
+                          >
+                            Logout
+                          </button>
+                        </div>
+
+                       
+                      </>
+                    )}
                 </div>
               )}
             </div>
@@ -163,7 +178,12 @@ const Header = () => {
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                       <div className="px-4 py-3 text-gray-700 font-medium border-b">{user.name}</div>
-                      <button
+                        <button
+                            onClick={() => {setDropdownOpen(false); setShowProfile(true)}}
+                            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 font-medium border-b"
+                          >
+                            Profile
+                          </button><button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 font-medium"
                       >
@@ -207,6 +227,26 @@ const Header = () => {
           onClick={() => setMenuOpen(false)}
         ></div>
       )}
+
+       {showProfile && (
+                          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl p-6 shadow-2xl max-w-md w-full mx-auto relative">
+                              <button
+                                onClick={() => setShowProfile(false)}
+                                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                aria-label="Close profile popup"
+                              >
+                                ✕
+                              </button>
+                              <div className="flex flex-col items-center space-y-4">
+                                <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center">
+                                  <User className="w-12 h-12 text-gray-500" />
+                                </div>
+                                <ProfileInfo user={user} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
     </header>
   );
 };
