@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Mail, MessageCircle, Linkedin } from 'lucide-react';
 
 const Footer = () => {
@@ -8,10 +9,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
           {/* Logo */}
           <div className="col-span-1">
-            <a href="/" className="flex items-center justify-center md:justify-start space-x-2 ">
-           <img src="./footer-logo.png"/>
-    
-            </a>
+            <Link href="/" className="flex items-center justify-center md:justify-start space-x-2 ">
+              <img src="./footer-logo.png" alt="Footer Logo" />
+            </Link>
           </div>
 
           {/* Services */}
@@ -19,24 +19,19 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4">Services</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/airport-transfer" className="text-gray-300 hover:text-white transition-colors">
                   Airport transfers
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/hourly-rental" className="text-gray-300 hover:text-white transition-colors">
                   City rentals
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/outstation" className="text-gray-300 hover:text-white transition-colors">
                   Outstation trips
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
-                  Event partnerships
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -46,24 +41,24 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4">Company</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/about-us" className="text-gray-300 hover:text-white transition-colors">
                   About us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/privacy-and-policy" className="text-gray-300 hover:text-white transition-colors">
                   Privacy and policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/cancellation-refund" className="text-gray-300 hover:text-white transition-colors">
                   Cancellation & refund
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/terms-and-conditions" className="text-gray-300 hover:text-white transition-colors">
                   Terms and conditions
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -71,8 +66,10 @@ const Footer = () => {
           {/* Contact Us */}
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-            <h3 className="text-gray-300 hover:text-white transition-colors">Support and Queries <br/>
-              ( +91 766156671X)</h3>
+            <h3 className="text-gray-300 hover:text-white transition-colors">
+              Support and Queries <br />
+              ( +91 766156671X)
+            </h3>
             <div className="flex justify-center md:justify-start space-x-4">
               <a
                 href="#"

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Info, Plane, Clock } from 'lucide-react';
+import { Calendar, MapPin, Info, Plane, Clock, StepBack } from 'lucide-react';
 import { calculateFareHourly, confirmBooking } from '../services/apiService';
 
 // Adjusted fare API call to match new API signature
@@ -70,6 +70,7 @@ const HourlyRental: React.FC = () => {
   const [locationTo, setLocationTo] = useState<string>('');
   const [schedule, setSchedule] = useState<string>('');
   const [passengers, setPassengers] = useState<number>(2);
+  const [isTooltipVisible, setTooltipVisible] = useState(false);
   const [suitcases, setSuitcases] = useState<number>(2);
   const [flightNumber, setFlightNumber] = useState<string>('132');
   const [showMapModal, setShowMapModal] = useState<boolean>(false);
@@ -367,7 +368,7 @@ const HourlyRental: React.FC = () => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   const handleCheckFare = async () => {
-    if (!locationFrom || !locationTo || !schedule || !hours) {
+    if (!locationFrom  || !schedule || !hours) {
       alert('Please fill in all required fields.');
       return;
     }
@@ -573,7 +574,7 @@ const HourlyRental: React.FC = () => {
                 )}
               </div>
 
-              <div className="relative">
+              {/* <div className="relative">
                 <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
                 <input
                   ref={toInputRef}
@@ -613,7 +614,7 @@ const HourlyRental: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
 
             <div className="mb-4 md:mb-6">
@@ -621,6 +622,7 @@ const HourlyRental: React.FC = () => {
               <div className="relative">
            <input
   type="datetime-local"
+  placeholder='Select Date and Time'
   value={schedule}
   min={new Date().toISOString().slice(0, 16)}
   max={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)}
@@ -642,10 +644,21 @@ const HourlyRental: React.FC = () => {
             )}
 
             <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
-              <div className="flex items-center mb-3">
-                <span className="text-gray-700 font-medium text-sm md:text-base">Guest Info</span>
-                <Info className="w-4 h-4 text-gray-500 ml-2" />
-              </div>
+            <div className="flex items-center mb-3 relative">
+      <span className="text-gray-700 font-medium text-sm md:text-base">Guest Info</span>
+      <div
+        className="relative ml-2"
+        onMouseEnter={() => setTooltipVisible(true)}
+        onMouseLeave={() => setTooltipVisible(false)}
+      >
+        <Info className="w-4 h-4 text-gray-500 cursor-pointer" />
+        {isTooltipVisible && (
+          <div className="absolute left-6 top-0 transform -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg z-10 whitespace-nowrap">
+            We need this information to allocate the right car
+          </div>
+        )}
+      </div>
+    </div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-gray-700 text-sm md:text-base">Passengers</span>
                 <div className="flex items-center space-x-3">
@@ -721,7 +734,16 @@ const HourlyRental: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
+             <div className="flex justify-between">
             <h2 className="text-2xl font-semibold mb-6">Complete Booking</h2>
+             <button
+              style={{width:"fit-content"}}
+                    onClick={()=>setBookingStep("form")}
+                    className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-xs font-medium mb-2"
+                  >
+                   Go Back
+                  </button>
+                  </div>
             <div className="flex flex-col md:flex-row justify-between flex-1 gap-6">
               {/* Trip Summary and Booking Policy */}
               <div className="flex-1">
@@ -732,16 +754,16 @@ const HourlyRental: React.FC = () => {
                       <MapPin className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-500">Pickup</p>
-                        <p className="text-base font-medium text-gray-800">{tripType === 'oneway' ? locationTo : locationFrom || 'Janakpuri'}</p>
+                        <p className="text-base font-medium text-gray-800">{locationFrom || 'Janakpuri'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
+                    {/* <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
                       <MapPin className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-500">Drop</p>
                         <p className="text-base font-medium text-gray-800">{tripType === 'roundtrip' ? locationFrom : locationTo || 'Airport'}</p>
                       </div>
-                    </div>
+                    </div> */}
                     <div className="flex items-center bg-[#F5F5F5] p-4 rounded-lg">
                       <Calendar className="w-6 h-6 text-gray-500 mr-4 flex-shrink-0" />
                       <div>

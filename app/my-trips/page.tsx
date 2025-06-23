@@ -140,7 +140,8 @@ const MyTripsPage = () => {
             }
           })
           .catch(() => {
-            toast.error('Failed to reload trips after cancellation.');
+            toast.error('Failed to reload trips.');
+            setTrips([]);
           })
           .finally(() => setLoading(false));
       }
@@ -156,15 +157,23 @@ const MyTripsPage = () => {
     setInvoiceLoading(rideId);
     try {
       const invoicedetail = await generateInvoice(rideId);
-      const invoice = invoicedetail?.invoice_details;
+      const { invoice } = invoicedetail?.invoice_details;
 
       if (invoice?.ride && invoice?.amount) {
         const content = `INVOICE
 
 Ride ID: ${invoice.ride}
+${rideId}
 Amount: ₹${invoice.amount}
-Invoice ID: ${invoice._id}
-Created At: ${new Date(invoice.createdAt).toLocaleString()}
+${invoice._id}
+CreatedAt: ${new Date(invoice.createdAt).toLocaleString('en-US', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })}
 
 Thank you for riding with us!
 `;
@@ -250,6 +259,22 @@ Thank you for riding with us!
   const pagedTrips = trips.slice((page - 1) * tripsPerPage, page * tripsPerPage);
   const totalPages = Math.ceil(trips.length / tripsPerPage);
 
+  // Format date with ordinal suffix
+  const formatDateWithOrdinal = (date: Date) => {
+    const day = date.getDate();
+    const month = date.toLocaleString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+    const time = date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    
+    const getOrdinalSuffix = (n: number) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return s[(v - 20) % 10] || s[v] || s[0];
+    };
+
+    return `${day}${getOrdinalSuffix(day)} ${month} ${year} ${time}`;
+  };
+
   return (
     <>
      {loading ? 
@@ -270,7 +295,7 @@ Thank you for riding with us!
             {pagedTrips.map((trip) => (
               <div
                 key={trip._id}
-                className="bg-[#F2F7F5] rounded-xl p-6 flex flex-col md:flex-row md:items-center md:justify-between"
+                className="bg-[#F2F7F5] rounded-xl p-6 flex flex-col md:flex-row md:items-start md:justify-between"
               >
                 <div>
                    <div className="font-medium text-lg mb-1">
@@ -287,32 +312,22 @@ Thank you for riding with us!
                   </div>
                   <div className="text-xs text-gray-500 mb-1">
                     {trip.pickupDatetime
-                      ? `${new Date(trip.pickupDatetime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })} — ${new Date(trip.pickupDatetime).toLocaleDateString('en-US', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}`
+                      ? formatDateWithOrdinal(new Date(trip.pickupDatetime))
                       : 'N/A'}
                   </div>
                  
-                  <div className="text-base text-gray-700">
+                  <div className="text-xs text-gray-500 mb-1">
                     Pickup: {trip.pickupLocation || 'N/A'}
                     {trip.dropLocation && ` → Drop: ${trip.dropLocation}`}
                   </div>
-                  <div className="text-base text-gray-700">
+                  <div className="text-xs text-gray-500 mb-1">
                     Total Fare: ₹{trip.fare || trip.totalFare || trip.price || 0}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Booked: {trip.createdAt ? new Date(trip.createdAt).toLocaleString() : 'N/A'}
+                    Booked: {trip.createdAt ? formatDateWithOrdinal(new Date(trip.createdAt)) : 'N/A'}
                   </div>
-                 
-                </div>
-                <div className="flex items-center space-x-2 mt-4 md:mt-0 md:ml-6">
-                  <div
-                        className={`text-xs font-medium px-3 py-1 rounded-full ${
+                  <div style={{width:"fit-content"}}
+                        className={`text-xs font-medium mt-1  px-3 py-1 rounded-full ${
                           trip.status === 'confirmed'
                             ? 'bg-green-400 text-white'
                             : trip.status === 'completed'
@@ -322,8 +337,11 @@ Thank you for riding with us!
                             : 'bg-gray-400 text-white'
                         }`}
                       >
-                        Status: {trip.status || 'N/A'}
+                         {trip.status || 'N/A'}
                       </div>
+                </div>
+                <div className="flex items-start space-x-2 mt-4 md:mt-0 md:ml-6">
+                 
                   {trip.status === 'confirmed' && !isPickupWithin3Hours(trip.pickupDatetime) && (
                     <button
                       onClick={() => handleCancelClick(trip._id || '')}

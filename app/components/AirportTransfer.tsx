@@ -324,6 +324,7 @@ const AirportTransfer: React.FC = () => {
   const decrementSuitcases = () => setSuitcases((s) => Math.max(s - 1, 0));
 
   const [coupon, setCoupon] = useState<string>('');
+  const [isTooltipVisible, setTooltipVisible] = useState(false);
   const [discount, setDiscount] = useState<number>(0);
 
   const handleApplyCoupon = () => {
@@ -510,13 +511,12 @@ const AirportTransfer: React.FC = () => {
     }
   };
 
-  const formatDateTime = (dateTime: string) => {
+ const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const formattedDate = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
     return `${time} - ${formattedDate}`;
   };
-
   const baseFare = apiFare !== null ? apiFare : 0; // Prefer API fare, fallback 0
   const totalAmount = baseFare - discount;
 
@@ -738,10 +738,21 @@ const AirportTransfer: React.FC = () => {
   )} */}
 
             <div className="bg-[#E7F5F3] p-4 rounded-md mb-4 md:mb-6">
-              <div className="flex items-center mb-3">
-                <span className="text-gray-700 font-medium text-sm md:text-base">Guest Info</span>
-                <Info className="w-4 h-4 text-gray-500 ml-2" />
-              </div>
+           <div className="flex items-center mb-3 relative">
+      <span className="text-gray-700 font-medium text-sm md:text-base">Guest Info</span>
+      <div
+        className="relative ml-2"
+        onMouseEnter={() => setTooltipVisible(true)}
+        onMouseLeave={() => setTooltipVisible(false)}
+      >
+        <Info className="w-4 h-4 text-gray-500 cursor-pointer" />
+        {isTooltipVisible && (
+          <div className="absolute left-6 top-0 transform -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg z-10 whitespace-nowrap">
+            We need this information to allocate the right car
+          </div>
+        )}
+      </div>
+    </div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-gray-700 text-sm md:text-base">Passengers</span>
                 <div className="flex items-center space-x-3">
@@ -817,7 +828,16 @@ const AirportTransfer: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
+        <div className="flex justify-between">
             <h2 className="text-2xl font-semibold mb-6">Complete Booking</h2>
+             <button
+              style={{width:"fit-content"}}
+                    onClick={()=>setBookingStep("form")}
+                    className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-xs font-medium mb-2"
+                  >
+                   Go Back
+                  </button>
+                  </div>
             <div className="flex flex-col md:flex-row justify-between flex-1 gap-6">
               {/* Trip Summary and Booking Policy */}
               <div className="flex-1">

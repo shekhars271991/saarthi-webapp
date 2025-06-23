@@ -72,7 +72,17 @@ const Header = () => {
             <div className="hidden md:flex items-center space-x-8">
               {/* Navigation */}
               <nav className="flex items-center space-x-8">
+                   <div className="relative group">
+                 
+                  <a
+                    href="/"
+                    className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors font-medium"
+                  >
+                    <span>Home</span>
+                  </a>
+                </div>
                 <div className="relative group">
+                 
                   <a
                     href="/our-services"
                     className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors font-medium"
@@ -96,12 +106,7 @@ const Header = () => {
                 >
                   Bangalore
                 </div>
-                   <a
-                   href="/"
-                  className="bg-[#016B5D] text-white px-6 py-2.5 rounded-full hover:bg-teal-700 transition-colors font-medium text-sm"
-                >
-                 <Home/>
-                </a>
+                 
                 {!user ? (
                   <a
                     href="/login"
@@ -193,6 +198,12 @@ const Header = () => {
                   )}
                 </div>
               )}
+               <a
+                href="/"
+                className="mb-4 flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors font-medium"
+              >
+                <span>Home</span>
+              </a>
               <a
                 href="/our-services"
                 className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors font-medium"

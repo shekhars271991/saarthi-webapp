@@ -63,27 +63,44 @@ export default function Homepage() {
                 </div>
 
                 {/* Service Buttons */}
-     <div className="flex flex-wrap gap-3 pt-4 justify-center lg:justify-start">
-                  {process.env.NEXT_PUBLIC_AIRPORT_TRANSFER_ENABLED === 'true' && (
-                    <a href="/airport-transfer" className="bg-[#016B5D] hover:bg-teal-700 text-white px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px] font-medium inline-flex items-center space-x-2 transition-colors">
-                      <MapPin className="w-6 h-6" />
-                      <span>Airport transfer</span>
-                    </a>
-                  )}
-                  {process.env.NEXT_PUBLIC_HOURLY_RENTAL_ENABLED === 'true' && (
-                    <a href="/hourly-rental" className="bg-[#016B5D] hover:bg-teal-700 text-white px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px]  font-medium inline-flex items-center space-x-2 transition-colors">
-                      <Clock className="w-6 h-6" />
-                      <span>Hourly Rental</span>
-                    </a>
-                  )}
-                  {process.env.NEXT_PUBLIC_OUTSTATION_ENABLED === 'true' && (
-                    <a href="/outstation" className="bg-[#016B5D] hover:bg-teal-700 text-white px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px]  font-medium inline-flex items-center space-x-2 transition-colors">
-                      <Car className="w-6 h-6" />
-                      <span>Outstation trip</span>
-                    </a>
-                  )}
-                </div>
-                
+<div className="flex flex-wrap gap-3 pt-4 justify-center lg:justify-start">
+  <a 
+    href="/airport-transfer" 
+    className={`px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px] font-medium inline-flex items-center space-x-2 transition-colors ${
+      process.env.NEXT_PUBLIC_AIRPORT_TRANSFER_ENABLED === 'true' 
+        ? 'bg-[#016B5D] hover:bg-teal-700 text-white' 
+        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+    }`}
+    {...(process.env.NEXT_PUBLIC_AIRPORT_TRANSFER_ENABLED !== 'true' && { disabled: true })}
+  >
+    <MapPin className="w-6 h-6" />
+    <span>Airport transfer</span>
+  </a>
+  <a 
+    href="/hourly-rental" 
+    className={`px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px] font-medium inline-flex items-center space-x-2 transition-colors ${
+      process.env.NEXT_PUBLIC_HOURLY_RENTAL_ENABLED === 'true' 
+        ? 'bg-[#016B5D] hover:bg-teal-700 text-white' 
+        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+    }`}
+    {...(process.env.NEXT_PUBLIC_HOURLY_RENTAL_ENABLED !== 'true' && { disabled: true })}
+  >
+    <Clock className="w-6 h-6" />
+    <span>Hourly Rental</span>
+  </a>
+  <a 
+    href="/outstation" 
+    className={`px-8 py-3 rounded-full text-[16px] sm:text-[16px] lg:text-[22px] font-medium inline-flex items-center space-x-2 transition-colors ${
+      process.env.NEXT_PUBLIC_OUTSTATION_ENABLED === 'true' 
+        ? 'bg-[#016B5D] hover:bg-teal-700 text-white' 
+        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+    }`}
+    {...(process.env.NEXT_PUBLIC_OUTSTATION_ENABLED !== 'true' && { disabled: true })}
+  >
+    <Car className="w-6 h-6" />
+    <span>Outstation trip</span>
+  </a>
+</div>
               </div>
             </div>
 
