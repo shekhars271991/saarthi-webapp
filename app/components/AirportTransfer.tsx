@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, MapPin, Info, Plane } from 'lucide-react';
+import { Calendar, MapPin, Info, Plane, ArrowLeft } from 'lucide-react';
 import { cancelRide, calculateFareAirTransfer, confirmBooking } from '../services/apiService';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -828,16 +828,14 @@ const AirportTransfer: React.FC = () => {
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
-        <div className="flex justify-between">
-            <h2 className="text-2xl font-semibold mb-6">Complete Booking</h2>
-             <button
-              style={{width:"fit-content"}}
+     <button
+              style={{width:"fit-content",alignItems:"center",display:"flex"}}
                     onClick={()=>setBookingStep("form")}
-                    className="bg-[#016B5D] text-white px-6 py-2 rounded-full hover:bg-[#014D40] text-xs font-medium mb-2"
+                    className=" px-6 py-2 rounded-full   font-medium mb-2"
                   >
-                   Go Back
+                   <ArrowLeft  className='mr-1 '/> {"    "} Back
                   </button>
-                  </div>
+            <h2 className=" text-2xl font-semibold mb-6">Complete Booking</h2>
             <div className="flex flex-col md:flex-row justify-between flex-1 gap-6">
               {/* Trip Summary and Booking Policy */}
               <div className="flex-1">
