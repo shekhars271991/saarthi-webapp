@@ -272,7 +272,7 @@ Thank you for riding with us!
       return s[(v - 20) % 10] || s[v] || s[0];
     };
 
-    return `${day}${getOrdinalSuffix(day)} ${month} ${year} ${time}`;
+    return `${day}${getOrdinalSuffix(day)} ${month} ${year}, ${time}`;
   };
 
   return (
@@ -308,7 +308,7 @@ Thank you for riding with us!
                       : 'Trip'}
                   </div>
                   <div className="text-xs text-gray-500 mb-1">
-                    Trip ID: xxxxxxxxx{trip._id?.slice(-4)}
+                    Trip ID: xxx{trip._id?.slice(-4)}
                   </div>
                   <div className="text-xs text-gray-500 mb-1">
                     {trip.pickupDatetime
